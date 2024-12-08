@@ -15,6 +15,25 @@ def collect_data():
     df = pd.DataFrame(response_obj['dados'])
     df.to_parquet('data/deputados/deputados.parquet')
 
+def collect_proposition_data():
+    response = requests.get(BASE_URL + "/proposicoes?codTema=62,40,46&ordem=ASC&ordenarPor=id").text
+    response_obj = json.loads(response)
+    df = pd.DataFrame(response_obj['dados'])
+
+    df['subjects'] = None
+
+    for index, row in df.iterrows():
+        subjects = []
+        id = row["id"]
+        url = BASE_URL + f"/proposicoes/{id}/temas"
+        result = json.loads(requests.get(url).text)
+        for subject in result['dados']:
+            subjects.append(subject['codTema'])
+
+        df.at[index, 'subjects'] = subjects
+
+    df.to_parquet('data/deputados/proposicoes.parquet')
+
 def collect_pricing_data():
 
     df = pd.read_parquet('data/deputados/deputados.parquet')
@@ -44,3 +63,4 @@ def collect_pricing_data():
 if __name__ == "__main__":
     collect_data()
     collect_pricing_data()
+    collect_proposition_data()

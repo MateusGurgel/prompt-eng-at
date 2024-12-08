@@ -23,6 +23,49 @@ def get_gemini_insights(any):
 
     return model.generate_content(prompt).text
 
+def chunking_text(text:str):
+    text = text.split(" ")
+    chunk_size = 100
+    chunk_interception = 20
+
+    chunks : list[list[str]] = []
+
+    for i in range(0, len(text), chunk_size):
+        start = 0 if i < chunk_interception else i - chunk_interception
+        end = chunk_size + i
+        chunk = text[start:i + end]
+        chunks.append(chunk)
+
+    return chunks
+
+def summarize_text(text:str):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    prompt = f"""
+    You are a summarization system. Your job is to make a consice summary of brazilian laws proposals.
+    
+    1. The summary must be in portuguese.
+    
+    Summarize the following text:
+    <TEXT>
+        {text}
+    </TEXT>
+
+    """
+    return model.generate_content(prompt).text
+
+def summarize_chunks(chunks):
+
+    summaries = []
+
+    for chunk in chunks:
+        text = " ".join(chunk)
+        summaries.append(summarize_text(text))
+
+    summary = " ".join(summaries)
+    summary = summarize_text(summary)
+
+    return summary
+
 def get_deputy_arrangement_pizza_data():
     model = genai.GenerativeModel("gemini-1.5-flash")
 
