@@ -4,6 +4,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 
+from data_processing import get_gemini_insights
+
 # Configuração da página
 st.set_page_config(
     page_title="Análise de Despesas - Deputados",
@@ -23,12 +25,16 @@ def load_despesas_dataset() -> pd.DataFrame:
     df = pd.read_parquet(file_path)
     return df
 
-
-def criar_grafico_partido(df):
-    """Cria gráfico de gastos por partido"""
+def criar_gasto_por_partido(df):
+    """Cria DF de gastos por partido"""
     gastos_partido = df.groupby('deputado_sigla_partido')['valorDocumento'].agg(['sum', 'count']).reset_index()
     gastos_partido.columns = ['Partido', 'Total Gasto', 'Quantidade de Despesas']
     gastos_partido = gastos_partido.sort_values('Total Gasto', ascending=False)
+    return gastos_partido
+
+def criar_grafico_partido(df):
+    """Cria gráfico de gastos por partido"""
+    gastos_partido = criar_gasto_por_partido(df)
 
     fig = px.bar(gastos_partido,
                  x='Partido',
@@ -40,9 +46,14 @@ def criar_grafico_partido(df):
                       yaxis_title="Valor Total (R$)")
     return fig
 
+def criar_gasto_por_mes(df):
+    """Cria DF de gastos por mês"""
+    gastos_mes = df.groupby('mes')['valorDocumento'].sum().reset_index()
+    return gastos_mes
+
 def criar_grafico_temporal(df):
     """Cria gráfico de evolução temporal dos gastos"""
-    gastos_mensais = df.groupby('mes')['valorDocumento'].sum().reset_index()
+    gastos_mensais = criar_gasto_por_mes(df)
 
     fig = px.line(gastos_mensais,
                   x='mes',
@@ -60,6 +71,15 @@ def criar_ranking_deputados(df):
     ranking.columns = ['Deputado', 'Partido', 'UF', 'Total Gasto', 'Quantidade de Despesas']
     ranking = ranking.sort_values('Total Gasto', ascending=False).head(10)
     return ranking
+
+def criar_insights_gemini(df):
+    """Cria insights com Gemini"""
+    ranking = criar_ranking_deputados(df)
+    gastos_mes = criar_gasto_por_mes(df)
+    gastos_partido = criar_gasto_por_partido(df)
+    return get_gemini_insights([ranking, gastos_mes, gastos_partido])
+
+
 
 def main():
     # Título da página
@@ -104,6 +124,15 @@ def main():
             use_container_width=True,
             hide_index=True
         )
+
+        # Análise 4: Gerar insights com Gemini
+        st.subheader("Insights com Gemini")
+        with st.spinner('Gerando insights com Gemini...'):
+            insights = criar_insights_gemini(df)
+            st.write(insights)
+
+
+
 
 if __name__ == "__main__":
     main()
