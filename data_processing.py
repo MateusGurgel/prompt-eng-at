@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from decouple import config
 import google.generativeai as genai
+import plotly.express as px
 
 genai.configure(api_key=config('GOOGLE_API_KEY'))
 
@@ -65,6 +66,16 @@ def summarize_chunks(chunks):
     summary = summarize_text(summary)
 
     return summary
+
+def create_deputy_arrangement_pizza_figure(deputy_data):
+    fig = px.pie(
+        deputy_data,
+        names="Partido",
+        values="Numero_Total_Deputados",
+        title="Distribuição dos Deputados por Partido",
+    )
+    return fig
+
 
 def get_deputy_arrangement_pizza_data():
     model = genai.GenerativeModel("gemini-1.5-flash")

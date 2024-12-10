@@ -1,10 +1,5 @@
 import streamlit as st
-import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from pathlib import Path
-
-from data_processing import get_gemini_insights
 
 # Configuração da página
 st.set_page_config(
@@ -12,25 +7,6 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
-
-@st.cache_data()
-def load_despesas_dataset() -> pd.DataFrame:
-    """
-    Carrega o dataset de despesas dos deputados a partir do arquivo parquet.
-
-    Returns:
-        pd.DataFrame: DataFrame contendo os dados de despesas
-    """
-    file_path = Path('data/deputados/serie_despesas_diárias_deputados.parquet')
-    df = pd.read_parquet(file_path)
-    return df
-
-def criar_gasto_por_partido(df):
-    """Cria DF de gastos por partido"""
-    gastos_partido = df.groupby('deputado_sigla_partido')['valorDocumento'].agg(['sum', 'count']).reset_index()
-    gastos_partido.columns = ['Partido', 'Total Gasto', 'Quantidade de Despesas']
-    gastos_partido = gastos_partido.sort_values('Total Gasto', ascending=False)
-    return gastos_partido
 
 def criar_grafico_partido(df):
     """Cria gráfico de gastos por partido"""
@@ -46,11 +22,6 @@ def criar_grafico_partido(df):
                       yaxis_title="Valor Total (R$)")
     return fig
 
-def criar_gasto_por_mes(df):
-    """Cria DF de gastos por mês"""
-    gastos_mes = df.groupby('mes')['valorDocumento'].sum().reset_index()
-    return gastos_mes
-
 def criar_grafico_temporal(df):
     """Cria gráfico de evolução temporal dos gastos"""
     gastos_mensais = criar_gasto_por_mes(df)
@@ -64,20 +35,6 @@ def criar_grafico_temporal(df):
     fig.update_layout(xaxis_title="Data",
                       yaxis_title="Valor Total (R$)")
     return fig
-
-def criar_ranking_deputados(df):
-    """Cria ranking dos deputados que mais gastaram"""
-    ranking = df.groupby(['deputado_nome', 'deputado_sigla_partido', 'deputado_sigla_uf'])['valorDocumento'].agg(['sum', 'count']).reset_index()
-    ranking.columns = ['Deputado', 'Partido', 'UF', 'Total Gasto', 'Quantidade de Despesas']
-    ranking = ranking.sort_values('Total Gasto', ascending=False).head(10)
-    return ranking
-
-def criar_insights_gemini(df):
-    """Cria insights com Gemini"""
-    ranking = criar_ranking_deputados(df)
-    gastos_mes = criar_gasto_por_mes(df)
-    gastos_partido = criar_gasto_por_partido(df)
-    return get_gemini_insights([ranking, gastos_mes, gastos_partido])
 
 
 
