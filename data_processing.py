@@ -24,6 +24,33 @@ def get_gemini_insights(any):
 
     return model.generate_content(prompt).text
 
+def generate_self_ask_questions(base_question:str):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    prompt = f"""
+    Com base na pergunta abaixo, retorne uma lista de perguntas relacionadas ao que foi perguntado:
+    
+    Além disso, melhore a questão base.
+    
+    {base_question}
+
+    """
+
+    return model.generate_content(prompt).text
+
+def generate_self_ask_response(questions:str, optional_data=""):
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    prompt = f"""
+    Com base nos dados apresentados, responda todas as perguntas abaixo detalhadamente e separadamente, responada em markdown:
+    
+    <dados>
+        {optional_data}
+    <dados>
+    
+    {questions}
+    """
+
+    return model.generate_content(prompt).text
+
 def chunking_text(text:str):
     text = text.split(" ")
     chunk_size = 100

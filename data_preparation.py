@@ -5,7 +5,8 @@ import google.generativeai as genai
 from decouple import config
 
 from data_processing import get_gemini_insights, create_deputy_arrangement_pizza_figure, \
-    get_deputy_arrangement_pizza_data
+    get_deputy_arrangement_pizza_data, chunking_text, summarize_chunks
+from vetorization import TextVectorizer
 
 BASE_URL = "https://dadosabertos.camara.leg.br/api/v2/"
 
@@ -84,7 +85,27 @@ def collect_and_save_pizza_insights_gemini(pizza_data):
     with open('data/deputados/insights_distribuicao_deputados.json', 'w') as f:
         json.dump({"insight": insights}, f)
 
+    return insights
+
+def collect_and_save_proposition_summary(propositions_df):
+    document = ' '.join(propositions_df.astype(str).values.flatten())
+    summary = summarize_chunks(chunking_text(document))
+    with open('data/deputados/sumarizacao_proposicoes.json', 'w') as f:
+        json.dump({"insight": summary}, f)
+
+    return summary
+
+def collect_and_save_spends_insights_gemini(spend_data):
+    insights = get_gemini_insights(spend_data)
+
+    with open('data/deputados/insights_despesas_deputados.json', 'w') as f:
+        json.dump({"insight": insights}, f)
+
+    return insights
+
+
 if __name__ == "__main__":
+
     deputy_data = collect_data()
     deputy_data.to_parquet('data/deputados/deputados.parquet')
 
@@ -93,7 +114,6 @@ if __name__ == "__main__":
 
     spends = collect_spending_data()
     spends.to_parquet('data/deputados/serie_despesas_diárias_deputados.parquet')
-
     #Question 3 - Visualization
     pizza_data = get_deputy_arrangement_pizza_data()
     figure = create_deputy_arrangement_pizza_figure(pizza_data)
@@ -103,5 +123,17 @@ if __name__ == "__main__":
     collect_spends_per_political_party(spends)
     collect_political_ranking(spends)
     collect_spends_per_month(spends)
-    collect_and_save_pizza_insights_gemini(pizza_data)
 
+    gemini_insights = collect_and_save_pizza_insights_gemini(pizza_data)
+    summary_propositions = collect_and_save_proposition_summary(proposition_data)
+    spends_insights = collect_and_save_spends_insights_gemini(spends)
+
+    #Load vector database
+    vectorizer = TextVectorizer()
+    vectorizer.add_dataset(deputy_data)
+    vectorizer.add_dataset(proposition_data)
+    vectorizer.add_dataset(spends)
+    vectorizer.add_text(gemini_insights)
+    vectorizer.add_text(summary_propositions)
+    vectorizer.add_text(spends_insights)
+    vectorizer.save()
